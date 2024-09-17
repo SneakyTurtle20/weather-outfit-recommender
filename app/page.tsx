@@ -1,101 +1,125 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect } from 'react'
+import axios from 'axios'
+import { getOutfitRecommendation } from '../utils/recommendation'
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [weather, setWeather] = useState<any>(null)
+  const [outfits, setOutfits] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState<boolean>(true)
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const fetchWeatherData = async (latitude: number, longitude: number) => {
+      try {
+        const response = await axios.get(`/api/weather?lat=${latitude}&lon=${longitude}`)
+        setWeather(response.data.data)
+        const recommendation = getOutfitRecommendation(
+          response.data.data.weather[0].main,
+          response.data.data.main.temp
+        )
+        setOutfits(recommendation)
+      } catch (error) {
+        console.error('Error fetching weather data:', error)
+        setError('Failed to fetch weather data. Please try again later.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    const handleGeolocationError = (error: GeolocationPositionError) => {
+      console.error('Geolocation error:', error)
+      setError('Unable to get your location. Please enable location services and refresh the page.')
+      setLoading(false)
+    }
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords
+          fetchWeatherData(latitude, longitude)
+        },
+        handleGeolocationError,
+        { timeout: 10000 } // 10 seconds timeout for geolocation
+      )
+    } else {
+      setError('Geolocation is not supported by your browser.')
+      setLoading(false)
+    }
+  }, [])
+
+  const getWeatherIcon = (iconCode: string) => {
+    return `http://openweathermap.org/img/wn/${iconCode}@2x.png`
+  }
+
+  if (loading) {
+    return (
+      <div className="container mx-auto p-4 min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-100 to-blue-200">
+        <h1 className="text-4xl font-bold mb-8 text-blue-800">Weather Outfit Recommender</h1>
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-t-4 border-b-4 border-blue-500"></div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto p-4 min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-red-100 to-red-200">
+        <h1 className="text-4xl font-bold mb-8 text-red-800">Weather Outfit Recommender</h1>
+        <p className="text-red-600 text-lg mb-4">{error}</p>
+        <button
+          className="mt-4 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out transform hover:scale-105"
+          onClick={() => window.location.reload()}
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+          Try Again
+        </button>
+      </div>
+    )
+  }
+
+  if (!weather || !outfits) {
+    return (
+      <div className="container mx-auto p-4 min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+        <h1 className="text-4xl font-bold mb-8 text-gray-800">Weather Outfit Recommender</h1>
+        <p className="text-gray-600 text-lg">No weather data available. Please try again later.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="container mx-auto p-4 min-h-screen bg-gradient-to-br from-blue-100 to-blue-200">
+      <h1 className="text-4xl font-bold mb-8 text-center text-blue-800">Weather Outfit Recommender</h1>
+      <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <h2 className="text-2xl font-semibold mb-4 text-blue-700">Current Weather</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-3xl font-bold text-gray-800">{Math.round(weather.main.temp)}°C</p>
+            <p className="text-xl text-gray-600">{weather.weather[0].description}</p>
+          </div>
+          <img 
+            src={getWeatherIcon(weather.weather[0].icon)} 
+            alt={weather.weather[0].description} 
+            className="w-24 h-24"
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        </div>
+      </div>
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <h2 className="text-2xl font-semibold mb-4 text-blue-700">Recommended Outfit</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {Object.entries(outfits).map(([category, items]) => (
+            <div key={category} className="bg-blue-50 p-4 rounded-lg shadow">
+              <h3 className="text-lg font-semibold capitalize mb-2 text-blue-600">{category}</h3>
+              <ul className="list-disc list-inside text-gray-700">
+                {(items as string[]).map((item, index) => (
+                  <li key={index} className="mb-1">{item}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
-  );
+  )
 }
