@@ -1,6 +1,6 @@
 type WeatherCondition = 'Clear' | 'Clouds' | 'Rain' | 'Snow' | 'Thunderstorm' | 'Drizzle' | 'Mist'
 
-interface OutfitRecommendation {
+export interface OutfitRecommendation {
   top: string[];
   bottom: string[];
   footwear: string[];

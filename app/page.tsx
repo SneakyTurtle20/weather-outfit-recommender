@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { getOutfitRecommendation } from '../utils/recommendation'
+import { getOutfitRecommendation, OutfitRecommendation } from '../utils/recommendation'
 
 export default function Home() {
+  // eslint-disable-next-line
   const [weather, setWeather] = useState<any>(null)
-  const [outfits, setOutfits] = useState<any>(null)
+  const [outfits, setOutfits] = useState<OutfitRecommendation>()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
 
